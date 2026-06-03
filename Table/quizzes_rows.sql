@@ -1,0 +1,1 @@
+INSERT INTO "public"."quizzes" ("id", "link_kahoot", "status", "score", "created_at") VALUES (26, 'haha.com', 'PENDING', 0, '2026-06-03 09:11:16.160492+00');
