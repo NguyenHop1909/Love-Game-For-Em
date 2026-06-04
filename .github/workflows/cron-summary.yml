@@ -1,10 +1,10 @@
 name: Tự Động Tổng Kết Thưởng Phạt
 on:
   schedule:
-    # 22:00 VN là 15:00 UTC (Đúng rồi)
-    - cron: "0 15 * * *" 
-    # 23:00 VN là 16:00 UTC (Đúng rồi)
-    - cron: "0 16 28-31 * *" 
+    # 22:00 VN hằng ngày (15:00 UTC)
+    - cron: "0 15 * * *"
+    # 00:00 VN ngày 1 hằng tháng (17:00 UTC ngày cuối tháng trước)
+    - cron: "0 17 L * *"
   workflow_dispatch:
 
 jobs:
@@ -13,65 +13,56 @@ jobs:
     steps:
       - name: Chạy script tổng kết
         run: |
-          cat << 'EOF' > script.js
+          node -e "
           const fetchAndNotify = async () => {
-            const supabaseUrl = process.env.SUPABASE_URL.replace(/\/$/, "");
-            const supabaseKey = process.env.SUPABASE_ANON_KEY;
-            const botToken = process.env.TELEGRAM_BOT_TOKEN;
-            const idAnh = process.env.TELE_CHAT_ID_ANH;
-            const idEm = process.env.TELE_CHAT_ID_EM || idAnh;
+            const supabaseUrl = '${{ secrets.VITE_SUPABASE_URL }}'.replace(/\/$/, '');
+            const supabaseKey = '${{ secrets.VITE_SUPABASE_ANON_KEY }}';
+            const botToken = '${{ secrets.VITE_TELE_BOT_TOKEN }}';
+            const idAnh = '${{ secrets.VITE_TELE_CHAT_ID_ANH }}';
+            const idEm = '${{ secrets.VITE_TELE_CHAT_ID_EM }}' || idAnh;
 
-            // --- ĐOẠN CHUẨN GIỜ UTC (15h = 22h VN, 16h = 23h VN) ---
             const now = new Date();
             const h = now.getUTCHours();
             const d = now.getUTCDate();
             const m = now.getUTCMonth() + 1;
             const y = now.getUTCFullYear();
-            const localISODate = `${y}-${m.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
-            // -----------------------------------------------------
+            const localISODate = now.toISOString().split('T')[0];
 
-            const supabaseHeaders = { "apikey": supabaseKey, "Authorization": `Bearer ${supabaseKey}`, "Content-Type": "application/json" };
-
+            const supabaseHeaders = { 'apikey': supabaseKey, 'Authorization': \`Bearer \${supabaseKey}\`, 'Content-Type': 'application/json' };
             const sendTele = async (chatId, text) => {
-              await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+              await fetch(\`https://api.telegram.org/bot${botToken}/sendMessage\`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ chat_id: chatId, text: text, parse_mode: 'Markdown' })
               });
             };
 
-            // LOGIC DỰA TRÊN GIỜ UTC TỪ CRON
-            if (h === 16) { // 23:00 VN
-              const res = await fetch(`${supabaseUrl}/rest/v1/rewards_penalties?date=like.${y}-${m.toString().padStart(2, '0')}%&select=*`, { headers: supabaseHeaders });
+            // LOGIC: Nếu là ngày 1 (giờ UTC 17h), tổng kết tháng trước
+            if (h === 17) {
+              const lastMonth = m === 1 ? 12 : m - 1;
+              const lastYear = m === 1 ? y - 1 : y;
+              const res = await fetch(\`\${supabaseUrl}/rest/v1/rewards_penalties?date=like.\${lastYear}-\${lastMonth.toString().padStart(2, '0')}%\&select=*\`, { headers: supabaseHeaders });
               const data = await res.json();
               let p = 0, t = 0;
               data.forEach(i => { p += Number(i.penalty_amount) || 0; t += Number(i.reward_amount) || 0; });
-              const msg = `🏆 *BẢNG VÀNG THÁNG ${m}/${y}*\n\n🎁 Tổng thưởng: *${t}*\n💀 Tổng phạt: *${p}*\n\n📌 Kết luận: ${t >= p ? `Lãi *${t - p}* phiếu! 🥳` : `Nợ *${p - t}* phiếu phạt! 😈`}`;
+              const msg = \`🏆 *BẢNG VÀNG THÁNG \${lastMonth}/\${lastYear}*\n\n🎁 Tổng thưởng: *\${t}*\n💀 Tổng phạt: *\${p}*\n\n📌 Kết luận: \${t >= p ? \`Lãi *\${t - p}* phiếu! 🥳\` : \`Nợ *\${p - t}* phiếu phạt! 😈\`}\`;
               await sendTele(idAnh, msg); await sendTele(idEm, msg);
-            } else if (h === 15) { // 22:00 VN
-              const res = await fetch(`${supabaseUrl}/rest/v1/rewards_penalties?date=eq.${localISODate}&select=*`, { headers: supabaseHeaders });
+            } 
+            // LOGIC: Nếu là 22h VN (giờ UTC 15h), tổng kết ngày
+            else if (h === 15) {
+              const res = await fetch(\`\${supabaseUrl}/rest/v1/rewards_penalties?date=eq.\${localISODate}&select=*\`, { headers: supabaseHeaders });
               const data = await res.json();
               let p = 0, t = 0;
               data.forEach(i => { p += Number(i.penalty_amount) || 0; t += Number(i.reward_amount) || 0; });
-
               let bonus = (t > 0 && t < 9) ? 1 : 0;
               let tCuoi = t + bonus;
               let soDu = tCuoi - p;
-              let status = soDu > 0 ? `Lãi *${soDu}* phiếu!` : (soDu === 0 ? `Huề cả làng!` : `Nợ *${Math.abs(soDu)}* phiếu!`);
-
-              const bonusText = bonus > 0 ? ` (+1 bonus = *${tCuoi}*)` : ` *${t}*`;
-              const msgNgay = `📢 *TỔNG KẾT NGÀY ${d}/${m}/${y}*\n\n🎁 *Tổng thưởng:* +${bonusText} phiếu\n💀 *Tổng phạt:* -*${p}* phiếu\n\n📌 *Kết quả:* ${status}`;
-
+              let status = soDu > 0 ? \`Lãi *\${soDu}* phiếu!\` : (soDu === 0 ? \`Huề cả làng!\` : \`Nợ *\${Math.abs(soDu)}* phiếu!\`);
+              const bonusText = bonus > 0 ? \` (+1 bonus = *\${tCuoi}*)\` : \` *\${t}*\`;
+              const msgNgay = \`📢 *TỔNG KẾT NGÀY \${d}/\${m}/\${y}*\n\n🎁 *Tổng thưởng:* +\${bonusText} phiếu\n💀 *Tổng phạt:* -*\${p}* phiếu\n\n📌 *Kết quả:* \${status}\`;
               await sendTele(idAnh, msgNgay);
               if (idEm && idEm !== idAnh) await sendTele(idEm, msgNgay);
             }
           };
           fetchAndNotify();
-          EOF
-          node script.js
-        env:
-          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.VITE_TELE_BOT_TOKEN }}
-          TELE_CHAT_ID_ANH: ${{ secrets.VITE_TELE_CHAT_ID_ANH }}
-          TELE_CHAT_ID_EM: ${{ secrets.VITE_TELE_CHAT_ID_EM }}
+          "

@@ -337,165 +337,119 @@ function App() {
   // Sau đó tính totalRewards sau khi đã áp dụng "cơ chế nhân đạo"
   const totalRewards = rawTotal === 9 ? 10 : rawTotal;
 
-  // Cuối cùng tính các biến ví dựa trên totalRewards đã được xử lý
-  const honthuong = totalRewards < 0 ? 0 : totalRewards;
-  const soHunSau = totalRewards < 0 ? 0 : Math.floor(totalRewards / 50);
-  const soHunMoi = totalRewards < 0 ? 0 : Math.floor((totalRewards % 50) / 10);
+  // 2. Logic tính gói quà theo thứ tự ưu tiên từ lớn đến nhỏ
+  // Gói 100 điểm: Món quà bất ngờ (< 1 triệu)
+  const goi100 = Math.floor(totalRewards / 100);
+
+  // Gói 50 điểm: Bữa ăn tự chọn (< 500k)
+  const goi50 = Math.floor(totalRewards / 50);
+
+  // Gói 10 điểm: Bữa ăn Babi chọn (< 50k)
+  const goi10 = Math.floor(totalRewards / 10);
 
   // --- 🔥 HÀM ĐỔI QUÀ ĐÃ FIX CUTE + ĐỒNG BỘ TELEGRAM 🔥 ---
   const handleExchangeGift = async (type) => {
-    // Nếu điểm nhỏ hơn hoặc bằng 0, nổ ngay popup thông báo hồng phấn siêu cute
     if (totalRewards <= 0) {
+      const messages = [
+        "Ví đang trống trơn rồi ní ơi! Bé chăm chỉ cày thêm điểm rồi quay lại với Anh nhé! 🧸",
+        "Ôi không, ví đang 'đói' điểm quá! Bé nỗ lực thêm tí nữa để tích điểm nha, Anh chờ! 💖",
+        "Hết sạch phiếu thưởng mất rồi! Đi làm Kahoot nộp bài cho Anh để tích điểm mau nào! 🌸",
+        "Ví hiện tại đang âm hoặc trống rỗng (${totalRewards} điểm). Bé đi nộp bài kiếm thêm thưởng nha! 🥰",
+      ];
+
+      // Chọn ngẫu nhiên 1 câu
+      const randomMsg = messages[Math.floor(Math.random() * messages.length)];
+
       Swal.fire({
-        title: "Hết sạch phiếu rồi ní ơi! 💀",
-        text: `Ví hiện tại đang bị âm hoặc trống rỗng (${totalRewards} phiếu). Mau đi làm Kahoot nộp bài kiếm thêm phiếu thưởng nha! 🧸`,
-        icon: "error",
-        confirmButtonColor: "#ff85c0",
+        title: "Chưa đổi được đâu nè! 🎀",
+        text: randomMsg.replace("${totalRewards}", totalRewards), // Thay thế text
+        icon: "info",
+        confirmButtonColor: "#db2777",
         background: "#fff0f6",
-        confirmButtonText: "Đồng ý, đi cày điểm liền! ✨",
-        customClass: {
-          popup: "rounded-2xl",
-        },
+        customClass: { popup: "rounded-2xl" },
+      });
+      return;
+    }
+    // 2. Logic đổi quà (đã đổi type theo yêu cầu của ní)
+    // HUN_MOI -> BUA_AN_ANH_CHON (10đ)
+    // HUN_SAU -> BUA_AN_BE_CHON (50đ)
+    // HUN_NGUYEN -> QUA_BAT_NGO (100đ)
+
+    // Xử lý chung cho từng loại
+    const config = {
+      BUA_AN_ANH_CHON: {
+        cost: 10,
+        title: "🍱 Bữa ăn Anh chọn",
+        msg: "Anh sẽ lên lịch một bữa ăn thật ngon cho hai đứa mình nhé!",
+      },
+      BUA_AN_BE_CHON: {
+        cost: 50,
+        title: "🍽️ Bữa ăn Bé chọn",
+        msg: "Bé cứ chọn nơi muốn đi, việc còn lại cứ để Anh lo nè!",
+      },
+      QUA_BAT_NGO: {
+        cost: 100,
+        title: "🎁 Quà bất ngờ",
+        msg: "Chuẩn bị tinh thần đón nhận món quà đặc biệt từ Anh nha!",
+      },
+    };
+
+    const currentGift = config[type];
+
+    if (totalRewards < currentGift.cost) {
+      Swal.fire({
+        title: "Chưa đủ điểm ní ơi! 🤏",
+        text: `Ní cần ${currentGift.cost} điểm để đổi ${currentGift.title}. Hiện tại mới có ${totalRewards} điểm thui nà!`,
+        icon: "warning",
+        confirmButtonColor: "#db2777",
       });
       return;
     }
 
-    if (type === "HUN_MOI") {
-      if (totalRewards < 10) {
-        Swal.fire({
-          title: "Hụt quà rồi ní ơi! 😢",
-          text: `Cần ít nhất 10 phiếu thưởng, ní hiện tại mới tích được ${totalRewards} phiếu thui nà!`,
-          icon: "warning",
-          confirmButtonColor: "#ff4d94",
-        });
-        return;
-      }
+    // Popup xác nhận
+    const result = await Swal.fire({
+      title: "Xác nhận đổi quà? ✨",
+      text: `Dùng ${currentGift.cost} điểm để đổi "${currentGift.title}" nha Bé yêu?`,
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: "#db2777",
+      confirmButtonText: "Đổi ngay!",
+      cancelButtonText: "Để dành thêm 🧸",
+    });
 
-      const result = await Swal.fire({
-        title: "Đổi quà ngọt ngào nhé! 💋",
-        text: 'Ní chắc chắn muốn tiêu hao 10 phiếu thưởng để lấy 1 cái "Hun Môi" ngọt lịm này chứ? ✨',
-        icon: "question",
-        showCancelButton: true,
-        confirmButtonColor: "#ff85c0",
-        cancelButtonColor: "#ffcce6",
-        confirmButtonText: "Đổi liền tay, yêu ngay! 💖",
-        cancelButtonText: "Thôi, để dành tích tiếp 🧸",
-        background: "#fff0f6",
-        customClass: {
-          popup: "rounded-3xl",
+    if (!result.isConfirmed) return;
+
+    setLoadingExchange(true);
+    try {
+      // 1. Tạo lý do tự động thật ngọt ngào
+      const reasonText = `Đổi quà: ${currentGift.title} (Từ em bé xinh đẹp ❤️)`;
+      const { error } = await supabase.from("rewards_penalties").insert([
+        {
+          date: new Date().toISOString().split("T")[0],
+          penalty_amount: 0,
+          reward_amount: -currentGift.cost,
+          reward_reason: reasonText,
         },
+      ]);
+      if (error) throw error;
+
+      // Telegram báo cho Bé
+      await callTelegramAPI(
+        idTeleCuaEm,
+        `🔔 *THÔNG BÁO TỪ HỆ THỐNG* 🔔\n\nBé yêu vừa đổi thành công: *${currentGift.title}*.\n\n${currentGift.msg} 🥰`,
+      );
+
+      await Swal.fire({
+        title: "Gửi thông báo thành công! 🎉",
+        text: "Tin nhắn đã gửi tới điện thoại của Bé. Anh sẽ liên hệ với Bé sớm nhất nhé!",
+        icon: "success",
+        confirmButtonColor: "#db2777",
       });
-
-      if (!result.isConfirmed) return;
-
-      setLoadingExchange(true);
-      try {
-        const { error } = await supabase.from("rewards_penalties").insert([
-          {
-            date: new Date().toISOString().split("T")[0],
-            penalty_amount: 0,
-            reward_amount: -10,
-          },
-        ]);
-        if (error) throw error;
-
-        await callTelegramAPI(
-          idTeleCuaEm,
-          `🚨 *TÍN HIỆU ĐỔI QUÀ TỪ ANH NGƯỜI YÊU!* 🚨\n\nEm yêu ơi! Anh ấy vừa đổi thành công *10 Phiếu Thưởng* để nhận: \n💋 *1 CÁI HUN MÔI CHÍNH HIỆU* 💋\n\nCông Chúa của anh chuẩn bị "thanh toán" phần thưởng nóng hổi cho người ta đi kìa bé ơi! 🥰`,
-        );
-
-        await Swal.fire({
-          title: "Đổi quà thành công! 🎉",
-          text: "Bot đã bắn tin nhắn đòi Hun Môi đến Telegram em yêu rồi nhé. Chuẩn bị tinh thần nhận quà thôi ní ơi! 💋",
-          icon: "success",
-          confirmButtonColor: "#ff85c0",
-          background: "#fff0f6",
-          confirmButtonText: "Đã rõ, chờ tí nhé! ✨",
-        });
-        fetchData();
-      } catch (error) {
-        Swal.fire({
-          title: "Lỗi hệ thống rồi ní ơi! 🥺",
-          text: "Có chút trục trặc nhỏ: " + error.message,
-          icon: "error",
-          confirmButtonColor: "#ff85c0",
-          background: "#fff0f6",
-        });
-      } finally {
-        setLoadingExchange(false);
-      }
-    }
-
-    if (type === "HUN_SAU") {
-      if (totalRewards < 50) {
-        Swal.fire({
-          title: "Chưa đủ đô ní ơi! 🌋",
-          text: `Cần tích lũy 50 phiếu thưởng để đổi Hun Sâu bự chà bá, ní mới có ${totalRewards} phiếu hà!`,
-          icon: "warning",
-          confirmButtonColor: "#7c3aed",
-        });
-        return;
-      }
-
-      const result = await Swal.fire({
-        title: "Chơi lớn luôn nè! 🔥",
-        text: "Ní muốn tiêu hao hẳn 50 phiếu thưởng để đổi lấy 1 cái Hun Sâu siêu cấp cháy bỏng đúng không? Quà bự lắm á nha!",
-        icon: "heart",
-        showCancelButton: true,
-        confirmButtonColor: "#ff85c0",
-        cancelButtonColor: "#ffcce6",
-        confirmButtonText: "Chốt đơn, hun cái nào! 💋",
-        cancelButtonText: "Để suy nghĩ lại... 🧸",
-        background: "#fff0f6",
-        customClass: {
-          popup: "rounded-2xl",
-        },
-      });
-
-      if (!result.isConfirmed) return;
-
-      setLoadingExchange(true);
-      try {
-        const { error } = await supabase.from("rewards_penalties").insert([
-          {
-            date: new Date().toISOString().split("T")[0],
-            penalty_amount: 0,
-            reward_amount: -50,
-          },
-        ]);
-        if (error) throw error;
-
-        await callTelegramAPI(
-          idTeleCuaEm,
-          `🔥 *CẢNH BÁO NGUY HIỂM: ANH NGƯỜI YÊU CHƠI LỚN!* 🔥\n\nÚi chu cha! Anh người yêu vừa "đập hộp" tiêu hao hẳn 50 Phiếu Thưởng để đổi lấy đặc quyền tối cao: \n🌋 *1 CÁI HUN SÂU ĐẬM SÂU CHÁY BỎNG* 🌋\n\nTình huống vô cùng khẩn cấp, em yêu chuẩn bị tinh thần đón nhận "tấn công" ngọt ngào đi nhé! 🥰`,
-        );
-
-        await Swal.fire({
-          title: "Báo động đỏ khẩn cấp! 🌋",
-          text: "Đã phát tín hiệu Hotline 'khẩn cấp' qua máy Bé Yêu! Quà này siêu chất lượng nha!",
-          icon: "success",
-          confirmButtonColor: "#ff85c0",
-          background: "#fff0f6",
-          confirmButtonText: "Hóng quá đi nè! ✨",
-          customClass: {
-            popup: "rounded-2xl",
-          },
-        });
-        fetchData();
-      } catch (error) {
-        Swal.fire({
-          title: "Lỗi hệ thống rồi ní ơi! 🥺",
-          text: error.message,
-          icon: "error",
-          confirmButtonColor: "#ff85c0",
-          background: "#fff0f6",
-          customClass: {
-            popup: "rounded-2xl",
-          },
-        });
-      } finally {
-        setLoadingExchange(false);
-      }
+      fetchData();
+    } catch (error) {
+      Swal.fire({ title: "Lỗi hệ thống", text: error.message, icon: "error" });
+    } finally {
+      setLoadingExchange(false);
     }
   };
 
@@ -609,7 +563,7 @@ function App() {
     if (parsedPenalty === 0 && parsedReward === 0) {
       Swal.fire({
         title: "Thông báo",
-        text: "Vui lòng nhập giá trị thưởng hoặc phạt hợp lệ trước khi gửi.",
+        text: "Vui lòng nhập điểm thưởng và điểm phạt hợp lệ trước khi gửi.",
         icon: "info",
         confirmButtonColor: "#0f172a", // Màu xanh đen chuyên nghiệp
       });
@@ -640,7 +594,7 @@ function App() {
 
       // Ghi log hệ thống
       const reasonText = textReason || "Không có lý do";
-      const logMsg = `Anh bé đã thêm mới: Thưởng ${parsedReward}, Phạt ${parsedPenalty}. Lý do: ${reasonText}`;
+      const logMsg = `Anh bé đã thêm mới: Điểm Thưởng ${parsedReward}, Điểm Kỷ Luật ${parsedPenalty}. Lý do: ${reasonText}`;
       await logAction("INSERT", data[0].id, logMsg);
 
       // Thông báo kết quả thực thi
@@ -693,7 +647,7 @@ function App() {
       const rAmount = item.reward_amount || 0;
       const pAmount = item.penalty_amount || 0;
 
-      const logMsg = `Anh bé xóa bản ghi: Thưởng ${rAmount}, Phạt ${pAmount}. Lý do: ${reasonText}`;
+      const logMsg = `Anh bé xóa bản ghi: Điểm Thưởng ${rAmount}, Điểm Kỷ Luật ${pAmount}. Lý do: ${reasonText}`;
 
       await logAction("DELETE", item.id, logMsg);
 
@@ -736,8 +690,8 @@ function App() {
       html: `
       <div style="text-align: left; padding: 10px;">
         <div id="swal-type-container" style="display: flex; gap: 10px; margin-bottom: 20px;">
-          <div id="btn-reward" style="flex:1; padding: 12px; text-align: center; border-radius: 12px; font-weight: bold; cursor: pointer; border: 2px solid #16a34a; transition: 0.3s;">🎁 Thưởng</div>
-          <div id="btn-penalty" style="flex:1; padding: 12px; text-align: center; border-radius: 12px; font-weight: bold; cursor: pointer; border: 2px solid #dc2626; transition: 0.3s;">💀 Phạt</div>
+          <div id="btn-reward" style="flex:1; padding: 12px; text-align: center; border-radius: 12px; font-weight: bold; cursor: pointer; border: 2px solid #16a34a; transition: 0.3s;">🌟 Thưởng</div>
+          <div id="btn-penalty" style="flex:1; padding: 12px; text-align: center; border-radius: 12px; font-weight: bold; cursor: pointer; border: 2px solid #dc2626; transition: 0.3s;">⚠️ Kỷ Luật</div>
         </div>
         
         <label style="font-weight: 600; color: #4b5563;">💰 Số điểm</label>
@@ -866,8 +820,8 @@ function App() {
       `🎀 ✨ *SỔ ĐẦU BÀI HÔM NAY* ✨ 🎀\n` +
       `📅 Ngày chốt: *${hienThiNgay}*\n` +
       `─────────────────────────\n` +
-      `🎁 Thưởng: *+${tongThuongHomNay}*\n` +
-      `💀 Phạt: *-${tongPhatHomNay}*\n` +
+      `🌟 Thưởng: *+${tongThuongHomNay}*\n` +
+      `⚠️ Kỷ Luật: *-${tongPhatHomNay}*\n` +
       `🛒 Đã đổi: *${displayDoiQua}*\n` +
       `─────────────────────────\n` +
       `🎯 *Quỹ tích lũy:* ${totalRewards} phiếu\n\n` +
@@ -884,8 +838,8 @@ function App() {
       `💖 ✨ *BÁO CÁO CỦA CÔNG CHÚA* ✨ 💖\n` +
       `📅 Ngày chốt: *${hienThiNgay}*\n` +
       `─────────────────────────\n` +
-      `🎁 Thưởng: *+${tongThuongHomNay}*\n` +
-      `💀 Phạt: *-${tongPhatHomNay}*\n` +
+      `🌟 Thưởng: *+${tongThuongHomNay}*\n` +
+      `⚠️ Kỷ Luật: *-${tongPhatHomNay}*\n` +
       `🛒 Đã đổi: *${displayDoiQua}*\n` +
       `─────────────────────────\n` +
       `🎯 *Quỹ hiện tại:* ${totalRewards} phiếu\n\n` +
@@ -1001,9 +955,9 @@ function App() {
           isLoggedIn && role === "user" ? (
             <UserView
               handleLogout={handleLogout}
-              honthuong={honthuong}
-              soHunMoi={soHunMoi}
-              soHunSau={soHunSau}
+              goi10={goi10}
+              goi50={goi50}
+              goi100={goi100}
               handleExchangeGift={handleExchangeGift}
               loadingExchange={loadingExchange}
               totalRewards={totalRewards}
@@ -1441,8 +1395,8 @@ const AdminView = ({
             <thead>
               <tr style={{ backgroundColor: "#f1f5f9" }}>
                 <th style={styles.th}>Ngày chốt điểm</th>
-                <th style={styles.th}>🎁 Điểm Thưởng tích lũy</th>
-                <th style={styles.th}>💀 Điểm Phạt nhận về</th>
+                <th style={styles.th}> Điểm Thưởng Của Bé</th>
+                <th style={styles.th}>⚠️ Điểm Kỷ Luật</th>
                 <th style={styles.th}>📝 Lí Do</th>
                 <th style={{ ...styles.th, textAlign: "center" }}>Hành Động</th>
               </tr>
@@ -1582,8 +1536,8 @@ const AdminView = ({
 
 const UserView = ({
   handleLogout,
-  soHunMoi,
-  soHunSau,
+  goi50,
+  goi100,
   handleExchangeGift,
   loadingExchange,
   totalRewards,
@@ -1596,7 +1550,7 @@ const UserView = ({
   loadingUser,
   rewardsPenalties,
   chartData,
-  honthuong,
+  goi10,
 }) => (
   <div style={styles.containerUser}>
     <button onClick={handleLogout} style={styles.btnLogout}>
@@ -1613,16 +1567,21 @@ const UserView = ({
             gap: "8px",
           }}
         >
-          🏪 VÍ QUY ĐỔI PHẦN THƯỞNG 🏪
+          🏪 VÍ QUY ĐỔI ĐIỂM 🏪
         </h2>
         <p style={{ color: "#667085", fontSize: "13px", margin: "0 0 15px 0" }}>
-          Quy tắc đổi quà: 10 Phiếu = 1 Hun môi 💋 | 5 Hun môi = 1 Hun sâu 🔥
+          Quy tắc đổi quà: 10 Điểm = 1 bữa ăn anh chọn (dưới 50k) | 50 Điểm = 1
+          bữa ăn bé tự chọn (dưới 500k) | 100 Điểm = 1 món quà bất ngờ từ anh
+          (dưới 1 triệu) <br />
+          👉Anh yêu sẽ duyệt và thực hiện ngay khi có thể nha!
         </p>
         <div style={styles.exchangeGrid}>
           <div style={styles.exchangeItem}>
-            <span style={{ fontSize: "24px" }}>🎁</span>
-            <span style={styles.exchangeValue}>{honthuong}</span>
-            <span style={styles.exchangeLabel}>Nụ hôn thường đang có</span>
+            <span style={{ fontSize: "24px" }}>🍱</span>
+            <span style={styles.exchangeValue}>{goi10}</span>
+            <span style={styles.exchangeLabel}>
+              1 bữa ăn anh chọn (dưới 50k)
+            </span>
           </div>
           <div
             style={{
@@ -1631,37 +1590,48 @@ const UserView = ({
               borderRight: "1px solid #fbcfe8",
             }}
           >
-            <span style={{ fontSize: "24px" }}>💋</span>
+            <span style={{ fontSize: "24px" }}>🍽️</span>
             <span style={{ ...styles.exchangeValue, color: "#e91e63" }}>
-              {soHunMoi}
+              {goi50}
             </span>
-            <span style={styles.exchangeLabel}>Hun Môi Đang Có</span>
+            <span style={styles.exchangeLabel}>
+              1 bữa ăn bé tự chọn (dưới 500k)
+            </span>
           </div>
           <div style={styles.exchangeItem}>
-            <span style={{ fontSize: "24px" }}>🔥</span>
+            <span style={{ fontSize: "24px" }}>🎁</span>
             <span style={{ ...styles.exchangeValue, color: "#9333ea" }}>
-              {soHunSau}
+              {goi100}
             </span>
-            <span style={styles.exchangeLabel}>Hun Sâu Đang Có</span>
+            <span style={styles.exchangeLabel}>
+              1 món quà bất ngờ từ anh (dưới 1 triệu)
+            </span>
           </div>
         </div>
 
         <div style={styles.exchangeActions}>
           {/* Bỏ đoạn "|| totalRewards < 10" và "|| totalRewards < 50" đi ní nhé, chỉ giữ lại loadingExchange thôi */}
           <button
-            onClick={() => handleExchangeGift("HUN_MOI")}
+            onClick={() => handleExchangeGift("BUA_AN_ANH_CHON")}
             style={{ ...styles.btnExchange, backgroundColor: "#e91e63" }}
             disabled={loadingExchange}
           >
-            💋 Đổi 10 Phiếu = 1 Hun Môi
+            🍱 Đổi 10 Điểm = 1 Bữa ăn anh chọn (Dưới 50k)
           </button>
 
           <button
-            onClick={() => handleExchangeGift("HUN_SAU")}
+            onClick={() => handleExchangeGift("BUA_AN_BE_CHON")}
             style={{ ...styles.btnExchange, backgroundColor: "#7c3aed" }}
             disabled={loadingExchange}
           >
-            🔥 Đổi 50 Phiếu = 1 Hun Sâu
+            🍽️ Đổi 50 Điểm = 1 Bữa ăn bé chọn (Dưới 500k)
+          </button>
+          <button
+            onClick={() => handleExchangeGift("QUA_BAT_NGO")}
+            style={{ ...styles.btnExchange, backgroundColor: "#9333ea" }}
+            disabled={loadingExchange}
+          >
+            🎁 Đổi 100 Điểm = 1 Món quà bất ngờ từ anh (Dưới 1 triệu)
           </button>
         </div>
 
@@ -1774,17 +1744,17 @@ const UserView = ({
           <ChartSummary data={chartData} />
         </div>
         <h2 style={{ color: "#1e3a8a", margin: "0 0 10px 0" }}>
-          📋 Sổ Đầu Bài Thưởng Phạt
+          📋 Sổ Điểm Của Bé
         </h2>
-        <p style={styles.subtitle}>Ghi chép công đức và tội lỗi nội bộ</p>
+        <p style={styles.subtitle}>Ghi điểm thưởng & Điểm Kỷ Luật</p>
         <div style={{ overflowX: "auto" }}>
           <table style={styles.table}>
             <thead>
               <tr style={{ backgroundColor: "#f1f5f9" }}>
                 <th style={styles.th}>Ngày chốt điểm</th>
-                <th style={styles.th}>🎁 Điểm Thưởng tích lũy</th>
-                <th style={styles.th}>💀 Điểm Phạt nhận về</th>
-                <th style={styles.th}>📝 Lí Do</th>
+                <th style={styles.th}>🌟 Điểm Thưởng</th>
+                <th style={styles.th}>⚠️ Điểm Kỷ Luật</th>
+                <th style={styles.th}>📌 Lí Do</th>
               </tr>
             </thead>
             <tbody>
@@ -1930,23 +1900,29 @@ const styles = {
     color: "#64748b",
     textAlign: "center",
   },
+  // Style cho cái khung bao 3 nút
   exchangeActions: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "12px",
-    marginTop: "15px",
+    display: "flex", // Dàn ngang
+    justifyContent: "space-between", // Chia đều khoảng cách
+    gap: "10px", // Khoảng cách giữa các nút
+    marginTop: "20px",
   },
   btnExchange: {
-    padding: "10px 15px",
+    flex: 1, // Quan trọng: 3 nút sẽ chia đều 100% chiều rộng
+    padding: "10px 5px", // Giảm padding một chút để không bị tràn chữ
     color: "#ffffff",
     border: "none",
     borderRadius: "10px",
     fontWeight: "bold",
-    fontSize: "13px",
+    fontSize: "12px", // Giảm font một chút cho vừa
     cursor: "pointer",
     transition: "all 0.2s",
-    boxShadow: "0 4px 10px rgba(0,0,0,0.05)",
-    opacity: 1,
+    boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+    display: "flex",
+    flexDirection: "column", // Để icon nằm trên, chữ nằm dưới
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "5px",
   },
   newTicketCard: {
     display: "flex",
