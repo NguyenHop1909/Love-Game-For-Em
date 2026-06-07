@@ -52,7 +52,7 @@ jobs:
                 
                 let p = 0, t = 0;
                 data.forEach(i => { p += Number(i.penalty_amount) || 0; t += Number(i.reward_amount) || 0; });
-                const msg = `🏆 *BẢNG VÀNG THÁNG ${m}/${y}*\n\n🎁 Tổng thưởng: *${t}*\n💀 Tổng phạt: *${p}*\n\n📌 Kết luận: ${t >= p ? `Lãi *${t - p}* phiếu! 🥳` : `Nợ *${p - t}* phiếu phạt! 😈`}`;
+                const msg = `🏆 *BẢNG VÀNG THÁNG ${m}/${y} CỦA BÉ YÊU*\n\n🎁 Tổng thưởng: *${t}*\n💀 Tổng phạt: *${p}*\n\n📌 Kết luận: ${t >= p ? `Lãi *${t - p}* phiếu! 🥳` : `Nợ *${p - t}* phiếu phạt! 😈`}`;
                 
                 await sendTele(idAnh, msg); 
                 await sendTele(idEm, msg);
@@ -71,7 +71,7 @@ jobs:
                 let status = soDu > 0 ? `Lãi *${soDu}* phiếu!` : (soDu === 0 ? `Huề cả làng!` : `Nợ *${Math.abs(soDu)}* phiếu!`);
 
                 const bonusText = bonus > 0 ? ` (+1 bonus = *${tCuoi}*)` : ` *${t}*`;
-                const msgNgay = `📢 *TỔNG KẾT ĐIỂM NGÀY ${d}/${m}/${y}*\n\n CỦA BÉ YÊU🎁 *Tổng thưởng:* +${bonusText} phiếu\n💀 *Tổng phạt:* -*${p}* phiếu\n\n📌 *Kết quả:* ${status}`;
+                const msgNgay = `📢 *TỔNG KẾT ĐIỂM NGÀY ${d}/${m}/${y} CỦA BÉ YÊU*\n\n🎁 *Tổng thưởng:* +${bonusText} phiếu\n💀 *Tổng phạt:* -*${p}* phiếu\n\n📌 *Kết quả:* ${status}`;
 
                 await sendTele(idAnh, msgNgay);
                 if (idEm && idEm !== idAnh) {
