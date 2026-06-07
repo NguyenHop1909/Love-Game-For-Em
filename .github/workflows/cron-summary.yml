@@ -71,7 +71,7 @@ jobs:
                 let status = soDu > 0 ? `Lãi *${soDu}* phiếu!` : (soDu === 0 ? `Huề cả làng!` : `Nợ *${Math.abs(soDu)}* phiếu!`);
 
                 const bonusText = bonus > 0 ? ` (+1 bonus = *${tCuoi}*)` : ` *${t}*`;
-                const msgNgay = `📢 *TỔNG KẾT NGÀY ${d}/${m}/${y}*\n\n🎁 *Tổng thưởng:* +${bonusText} phiếu\n💀 *Tổng phạt:* -*${p}* phiếu\n\n📌 *Kết quả:* ${status}`;
+                const msgNgay = `📢 *TỔNG KẾT ĐIỂM NGÀY ${d}/${m}/${y}*\n\n CỦA BÉ YÊU🎁 *Tổng thưởng:* +${bonusText} phiếu\n💀 *Tổng phạt:* -*${p}* phiếu\n\n📌 *Kết quả:* ${status}`;
 
                 await sendTele(idAnh, msgNgay);
                 if (idEm && idEm !== idAnh) {
