@@ -1,4 +1,4 @@
-name: Tự Động Tổng Kết Thưởng Phạt
+name: Tự Động Tổng Kết Thưởng Phạt Của Em Bé Yêu
 on:
   schedule:
     - cron: "0 15 * * *" # 22:00 VN hằng ngày
