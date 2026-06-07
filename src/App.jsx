@@ -3,11 +3,14 @@ import { supabase } from "./supabaseClient.js";
 import Swal from "sweetalert2";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import ChartSummary from "./ChartSummary";
+import CuteLoading from "./CuteLoading"; // Loading dễ thương cho web
+import ButtonCute from "./ButtonCute";// Button xinh xắn, có hiệu ứng khi loading
+import './Loading.css';
 
 function App() {
   const navigate = useNavigate();
 
-  // --- HỆ THỐNG ĐĂNG NHẬP NỘI BỘ ---
+  // --- HỆ THỐNG ĐĂNG NHẬP NỘI BỘ ---ButtonCute
   const [isLoggedIn, setIsLoggedIn] = useState(
     () => localStorage.getItem("is_logged_in") === "true",
   );
@@ -26,6 +29,7 @@ function App() {
   const [scores, setScores] = useState({});
   const [selectedFiles, setSelectedFiles] = useState({});
   const [loadingUser, setLoadingUser] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   // --- BIẾN CHO PHẦN THƯỞNG PHẠT + LÍ DO ---
   const [rewardsPenalties, setRewardsPenalties] = useState([]);
@@ -39,6 +43,7 @@ function App() {
 
   // --- BIẾN ĐỂ TÍNH TOÁN QUY ĐỔI CHO USER ---
   const [loadingExchange, setLoadingExchange] = useState(false);
+  const [loadingSummary, setLoadingSummary] = useState(false);
 
   // --- SHOW AUDIT LOGS (CHỈ ADMIN) ---
   const [auditLogs, setAuditLogs] = useState([]);
@@ -88,9 +93,9 @@ function App() {
     .map((item) => ({
       date: item.created_at
         ? new Date(item.created_at).toLocaleDateString("vi-VN", {
-            day: "2-digit",
-            month: "2-digit",
-          })
+          day: "2-digit",
+          month: "2-digit",
+        })
         : "N/A",
       reward: Number(item.reward_amount) || 0,
       penalty: Math.abs(Number(item.penalty_amount)) || 0,
@@ -266,6 +271,8 @@ function App() {
       }
     } catch (error) {
       console.error("Lỗi tải dữ liệu:", error.message);
+    } finally {
+      setIsInitialLoading(false);
     }
   };
 
@@ -435,7 +442,7 @@ function App() {
 
       // Telegram báo cho Bé
       await callTelegramAPI(
-        idTeleCuaEm,
+        idTeleCuaAnh,
         `🔔 *THÔNG BÁO TỪ HỆ THỐNG* 🔔\n\nBé yêu vừa đổi thành công: *${currentGift.title}*.\n\n${currentGift.msg} 🥰`,
       );
 
@@ -475,7 +482,7 @@ function App() {
 
       await callTelegramAPI(
         idTeleCuaAnh,
-        `🔔 *THÔNG BÁO HỆ THỐNG*\n\nCó thử thách mới đã được khởi tạo nè bé yêu.\n🔗 *Link bài tập:* ${kahootLink}\n\nĐề nghị kiểm tra và xử lý.`,
+        `🔔 *THÔNG BÁO HỆ THỐNG*\n\nCó thử thách mới đã được khởi tạo nè bé yêu.\n🔗 *Link bài tập:* ${kahootLink}\n\nBé yêu làm bài ngoan nhaaaaa <3`,
       );
 
       setMessageAdmin("✅ Đã ghi nhận thử thách và gửi thông báo thành công.");
@@ -594,7 +601,7 @@ function App() {
 
       // Ghi log hệ thống
       const reasonText = textReason || "Không có lý do";
-      const logMsg = `Anh bé đã thêm mới: Điểm Thưởng ${parsedReward}, Điểm Kỷ Luật ${parsedPenalty}. Lý do: ${reasonText}`;
+      const logMsg = `Anh bé đã thêm mới: Điểm Thưởng ${parsedReward}, Điểm Hư ${parsedPenalty}. Lý do: ${reasonText}`;
       await logAction("INSERT", data[0].id, logMsg);
 
       // Thông báo kết quả thực thi
@@ -647,7 +654,7 @@ function App() {
       const rAmount = item.reward_amount || 0;
       const pAmount = item.penalty_amount || 0;
 
-      const logMsg = `Anh bé xóa bản ghi: Điểm Thưởng ${rAmount}, Điểm Kỷ Luật ${pAmount}. Lý do: ${reasonText}`;
+      const logMsg = `Anh bé xóa bản ghi: Điểm Thưởng ${rAmount}, Điểm Hư ${pAmount}. Lý do: ${reasonText}`;
 
       await logAction("DELETE", item.id, logMsg);
 
@@ -690,8 +697,8 @@ function App() {
       html: `
       <div style="text-align: left; padding: 10px;">
         <div id="swal-type-container" style="display: flex; gap: 10px; margin-bottom: 20px;">
-          <div id="btn-reward" style="flex:1; padding: 12px; text-align: center; border-radius: 12px; font-weight: bold; cursor: pointer; border: 2px solid #16a34a; transition: 0.3s;">🌟 Thưởng</div>
-          <div id="btn-penalty" style="flex:1; padding: 12px; text-align: center; border-radius: 12px; font-weight: bold; cursor: pointer; border: 2px solid #dc2626; transition: 0.3s;">⚠️ Kỷ Luật</div>
+          <div id="btn-reward" style="flex:1; padding: 12px; text-align: center; border-radius: 12px; font-weight: bold; cursor: pointer; border: 2px solid #16a34a; transition: 0.3s;">🌟 Điểm Thưởng</div>
+          <div id="btn-penalty" style="flex:1; padding: 12px; text-align: center; border-radius: 12px; font-weight: bold; cursor: pointer; border: 2px solid #dc2626; transition: 0.3s;">⚠️ Điểm Hư</div>
         </div>
         
         <label style="font-weight: 600; color: #4b5563;">💰 Số điểm</label>
@@ -737,7 +744,7 @@ function App() {
       preConfirm: () => {
         const type =
           document.getElementById("btn-reward").style.backgroundColor ===
-          "rgb(22, 163, 74)"
+            "rgb(22, 163, 74)"
             ? "reward"
             : "penalty";
         return {
@@ -820,38 +827,38 @@ function App() {
       `🎀 ✨ *SỔ ĐẦU BÀI HÔM NAY* ✨ 🎀\n` +
       `📅 Ngày chốt: *${hienThiNgay}*\n` +
       `─────────────────────────\n` +
-      `🌟 Thưởng: *+${tongThuongHomNay}*\n` +
-      `⚠️ Kỷ Luật: *-${tongPhatHomNay}*\n` +
+      `🌟 Điểm Thưởng: *+${tongThuongHomNay}*\n` +
+      `⚠️ Điểm Hư: *-${tongPhatHomNay}*\n` +
       `🛒 Đã đổi: *${displayDoiQua}*\n` +
       `─────────────────────────\n` +
       `🎯 *Quỹ tích lũy:* ${totalRewards} phiếu\n\n` +
-      `${
-        totalRewards >= 0
-          ? "🧸 Em yêu vẫn còn dư dả nè! 🥰"
-          : "💔 Em yêu nợ " +
-            Math.abs(totalRewards) +
-            " phiếu phạt! Đến giờ ăn đòn!!! 👿"
+      `${totalRewards > 0
+        ? "🧸 Em yêu vẫn còn dư dả phiếu đổi quà nè! Yêu cục cưng nhất luôn 🥰"
+        : totalRewards === 0
+          ? "🌟 Quỹ đang ở vạch xuất phát rồi nè em yêu ơi, làm thêm thử thách để tích lũy nhen! 💪💖"
+          : "🥺 Úi chu choa, em yêu đang tạm nợ " + Math.abs(totalRewards) + " phiếu phạt mất rồi nè! Phải ngoan ngoãn bù lại thui nhaaa... 👑💕"
       }`;
-
     // 2. Thông báo gửi cho Công chúa (ngọt ngào, báo cáo để Công chúa nắm tình hình)
     const thongBaoChoEm =
       `💖 ✨ *BÁO CÁO CỦA CÔNG CHÚA* ✨ 💖\n` +
       `📅 Ngày chốt: *${hienThiNgay}*\n` +
       `─────────────────────────\n` +
-      `🌟 Thưởng: *+${tongThuongHomNay}*\n` +
-      `⚠️ Kỷ Luật: *-${tongPhatHomNay}*\n` +
+      `🌟 Điểm Thưởng: *+${tongThuongHomNay}*\n` +
+      `⚠️ Điểm Hư: *-${tongPhatHomNay}*\n` +
       `🛒 Đã đổi: *${displayDoiQua}*\n` +
       `─────────────────────────\n` +
       `🎯 *Quỹ hiện tại:* ${totalRewards} phiếu\n\n` +
-      `${
-        totalRewards >= 0
-          ? "🥰 Quỹ của bé vẫn đang rất ổn áp, Công chúa yên tâm nhé!"
+      `${totalRewards > 0
+        ? "🥰 Quỹ của bé vẫn đang rất ổn áp, Công chúa yên tâm nhé!"
+        : totalRewards === 0
+          ? "🌟 Quỹ đang ở vạch xuất phát rồi nè em yêu ơi, làm thêm thử thách để tích lũy nhen! 💪💖"
           : "🧸 Hiện tại đang âm " +
-            Math.abs(totalRewards) +
-            " phiếu. Bé không cần lo lắng quá đâu, em bé cố gắng nhé! ✨"
+          Math.abs(totalRewards) +
+          " phiếu. Bé không cần lo lắng quá đâu, em bé cố gắng nhé! ✨"
       }`;
 
     try {
+      setLoadingSummary(true);
       // Bắn cho Anh người yêu (Sử dụng đúng tên biến thongBaoChoAnh)
       if (idTeleCuaAnh) {
         await callTelegramAPI(idTeleCuaAnh, thongBaoChoAnh);
@@ -884,8 +891,14 @@ function App() {
         confirmButtonColor: "#ff85c0",
         background: "#fff0f6",
       });
+    } finally {
+      setLoadingSummary(false);
     }
   };
+
+  if (isInitialLoading && isLoggedIn) {
+    return <CuteLoading />;
+  }
 
   return (
     <Routes>
@@ -920,6 +933,7 @@ function App() {
               setKahootLink={setKahootLink}
               loadingAdmin={loadingAdmin}
               messageAdmin={messageAdmin}
+              loadingSummary={loadingSummary}
               handleSummaryAndNotify={handleSummaryAndNotify}
               handleAddTicket={handleAddTicket}
               inputDate={inputDate}
@@ -1044,6 +1058,7 @@ const AdminView = ({
   setKahootLink,
   loadingAdmin,
   messageAdmin,
+  loadingSummary,
   handleSummaryAndNotify,
   handleAddTicket,
   inputDate,
@@ -1085,13 +1100,15 @@ const AdminView = ({
             style={styles.inputAdmin}
             disabled={loadingAdmin}
           />
-          <button
+
+          {/* ĐỔI THÀNH BUTTON CUTE Ở ĐÂY NÈ NÍ */}
+          <ButtonCute
             type="submit"
+            loading={loadingAdmin}
             style={styles.buttonAdmin}
-            disabled={loadingAdmin}
           >
-            {loadingAdmin ? "🚀 Đang gửi..." : "🚀 Bắn Thử Thách Cho Người Yêu"}
-          </button>
+            🚀 Bắn Thử Thách Cho Người Yêu
+          </ButtonCute>
         </form>
         {messageAdmin && <p style={styles.message}>{messageAdmin}</p>}
       </div>
@@ -1167,9 +1184,13 @@ const AdminView = ({
           }}
         >
           📋 Nhật Ký Thưởng Phạt{" "}
-          <button onClick={handleSummaryAndNotify} style={styles.btnNotify}>
+          <ButtonCute
+            onClick={handleSummaryAndNotify}
+            style={styles.btnNotify}
+            loading={loadingSummary}
+          >
             📢 Bắn Tổng Kết Lên Tele
-          </button>
+          </ButtonCute>
         </h2>
 
         {/* --- NÍ DÁN VÀO ĐÂY NÈ --- */}
@@ -1264,9 +1285,9 @@ const AdminView = ({
                         ⏰{" "}
                         {log.created_at
                           ? new Date(log.created_at).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
                           : ""}
                       </span>
                     </div>
@@ -1381,13 +1402,14 @@ const AdminView = ({
             />
           </div>
 
-          <button
+          <ButtonCute
             type="submit"
             style={styles.newBtnSubmit}
             disabled={loadingTicket}
+            loading={loadingTicket}
           >
-            {loadingTicket ? "⏳ Đang ghi sổ ngầm..." : "🚀 Ghi Vào Sổ Đầu Bài"}
-          </button>
+            🚀 Ghi Vào Sổ Đầu Bài
+          </ButtonCute>
         </form>
 
         <div style={{ marginTop: "25px", overflowX: "auto" }}>
@@ -1396,7 +1418,7 @@ const AdminView = ({
               <tr style={{ backgroundColor: "#f1f5f9" }}>
                 <th style={styles.th}>Ngày chốt điểm</th>
                 <th style={styles.th}> Điểm Thưởng Của Bé</th>
-                <th style={styles.th}>⚠️ Điểm Kỷ Luật</th>
+                <th style={styles.th}>⚠️ Điểm Hư</th>
                 <th style={styles.th}>📝 Lí Do</th>
                 <th style={{ ...styles.th, textAlign: "center" }}>Hành Động</th>
               </tr>
@@ -1611,28 +1633,32 @@ const UserView = ({
 
         <div style={styles.exchangeActions}>
           {/* Bỏ đoạn "|| totalRewards < 10" và "|| totalRewards < 50" đi ní nhé, chỉ giữ lại loadingExchange thôi */}
-          <button
+          <ButtonCute
             onClick={() => handleExchangeGift("BUA_AN_ANH_CHON")}
             style={{ ...styles.btnExchange, backgroundColor: "#e91e63" }}
-            disabled={loadingExchange}
+            loading={loadingExchange}
           >
-            🍱 Đổi 10 Điểm = 1 Bữa ăn anh chọn (Dưới 50k)
-          </button>
+            <span>🍱 Đổi 10 Điểm</span>
+            <span style={{ fontSize: '10px' }}>Bữa ăn anh chọn</span>
+          </ButtonCute>
 
-          <button
+          <ButtonCute
             onClick={() => handleExchangeGift("BUA_AN_BE_CHON")}
             style={{ ...styles.btnExchange, backgroundColor: "#7c3aed" }}
-            disabled={loadingExchange}
+            loading={loadingExchange}
           >
-            🍽️ Đổi 50 Điểm = 1 Bữa ăn bé chọn (Dưới 500k)
-          </button>
-          <button
+            <span>🍽️ Đổi 50 Điểm</span>
+            <span style={{ fontSize: '10px' }}>Bữa ăn bé chọn</span>
+          </ButtonCute>
+
+          <ButtonCute
             onClick={() => handleExchangeGift("QUA_BAT_NGO")}
             style={{ ...styles.btnExchange, backgroundColor: "#9333ea" }}
-            disabled={loadingExchange}
+            loading={loadingExchange}
           >
-            🎁 Đổi 100 Điểm = 1 Món quà bất ngờ từ anh (Dưới 1 triệu)
-          </button>
+            <span>🎁 Đổi 100 Điểm</span>
+            <span style={{ fontSize: '10px' }}>Quà bất ngờ</span>
+          </ButtonCute>
         </div>
 
         <div
@@ -1703,13 +1729,13 @@ const UserView = ({
                           }
                           style={styles.inputScore}
                         />
-                        <button
+                        <ButtonCute
                           onClick={() => handleSubmitScore(quiz.id)}
                           style={styles.btnSubmit}
-                          disabled={loadingUser}
+                          loading={loadingUser}
                         >
                           Nộp Điểm
-                        </button>
+                        </ButtonCute>
                       </div>
                       <input
                         type="file"
@@ -1746,14 +1772,14 @@ const UserView = ({
         <h2 style={{ color: "#1e3a8a", margin: "0 0 10px 0" }}>
           📋 Sổ Điểm Của Bé
         </h2>
-        <p style={styles.subtitle}>Ghi điểm thưởng & Điểm Kỷ Luật</p>
+        <p style={styles.subtitle}>Ghi điểm thưởng & Điểm Hư</p>
         <div style={{ overflowX: "auto" }}>
           <table style={styles.table}>
             <thead>
               <tr style={{ backgroundColor: "#f1f5f9" }}>
                 <th style={styles.th}>Ngày chốt điểm</th>
                 <th style={styles.th}>🌟 Điểm Thưởng</th>
-                <th style={styles.th}>⚠️ Điểm Kỷ Luật</th>
+                <th style={styles.th}>⚠️ Điểm Hư</th>
                 <th style={styles.th}>📌 Lí Do</th>
               </tr>
             </thead>
